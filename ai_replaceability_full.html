@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="slides-format" content="viewport">
+    <title>AI Replaceability in Corpus Linguistics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300..700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @theme {
+            --color-bg: #0f0a2a;
+            --color-bg-deep: #07041a;
+            --color-surface: #1a1440;
+            --color-text: #f1f5f9;
+            --color-text-secondary: #f1f5f9;
+            --color-text-muted: #ffffff;
+            --color-accent-1: #a78bfa;
+            --color-accent-2: #38bdf8;
+            --color-accent-3: #f472b6;
+            --color-glass-bg: rgba(255,255,255,0.06);
+            --color-glass-border: rgba(255,255,255,0.09);
+            --color-vignette: rgba(0,0,0,0.45);
+            --font-display: 'Instrument Serif', Georgia, serif;
+            --font-body: 'DM Sans', system-ui, sans-serif;
+        }
+    </style>
+    <style>
+        :root { --color-bg: #0f0a2a; --color-text: #f1f5f9; --glow-color-rgb: 167,139,250; }
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { background: var(--color-bg); margin: 0; }
+        body { font-family: 'DM Sans', system-ui, sans-serif; color: var(--color-text); overflow: hidden; height: 100vh; width: 100vw; }
+        .deck { width: 100vw; height: 100vh; position: relative; }
+        .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--color-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: scale(0.95); transition: opacity 0.7s ease, transform 0.7s ease; pointer-events: none; overflow: hidden; }
+        .slide.active { opacity: 1; transform: scale(1); pointer-events: all; }
+        .slide > .content { position: relative; z-index: 2; width: 100%; max-width: 1100px; padding: clamp(1.5rem, 4vw, 3.5rem); }
+        .nav-controls { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 16px; z-index: 100; background: rgba(255,255,255,0.06); backdrop-filter: blur(10px); padding: 10px 24px; border-radius: 40px; border: 1px solid rgba(255,255,255,0.09); }
+        .nav-btn { width: 40px; height: 40px; border: none; background: rgba(255,255,255,0.06); color: #a78bfa; border-radius: 50%; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
+        .nav-btn:hover { background: rgba(255,255,255,0.12); }
+        .slide-dots { display: flex; gap: 8px; }
+        .slide-dots .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.2); cursor: pointer; transition: background 0.3s, transform 0.3s; }
+        .slide-dots .dot.active { background: #a78bfa; transform: scale(1.35); }
+        .slide-counter { font-size: 0.78rem; color: #ffffff; min-width: 40px; text-align: center; }
+        .reveal { opacity: 0; transform: translateY(20px); }
+        .text-glow { text-shadow: 0 0 20px rgba(167,139,250,0.5), 0 0 40px rgba(167,139,250,0.2); }
+        .stat-glow { text-shadow: 0 0 30px rgba(167,139,250,0.6), 0 0 60px rgba(167,139,250,0.25); }
+        @keyframes glow-pulse { 0%,100% { text-shadow: 0 0 20px rgba(167,139,250,0.5),0 0 40px rgba(167,139,250,0.2);} 50% { text-shadow: 0 0 30px rgba(167,139,250,0.8),0 0 60px rgba(167,139,250,0.3);} }
+        .glow-pulse { animation: glow-pulse 3s ease-in-out infinite; }
+        @keyframes float-slow { 0%{transform:translate(0,0) scale(1);} 25%{transform:translate(60px,-50px) scale(1.12);} 50%{transform:translate(-40px,40px) scale(0.9);} 75%{transform:translate(50px,20px) scale(1.08);} 100%{transform:translate(0,0) scale(1);} }
+        @keyframes float-drift { 0%{transform:translate(0,0) scale(1) rotate(0deg);} 33%{transform:translate(-50px,-60px) scale(1.15) rotate(3deg);} 66%{transform:translate(40px,30px) scale(0.88) rotate(-2deg);} 100%{transform:translate(0,0) scale(1) rotate(0deg);} }
+        @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-15px);} }
+        .gradient-mesh { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+        .blob { position: absolute; border-radius: 50%; filter: blur(80px); animation: float-slow 10s ease-in-out infinite; }
+        .blob:nth-child(2) { animation: float-drift 14s ease-in-out infinite; }
+        .blob:nth-child(3) { animation: float-slow 18s ease-in-out infinite reverse; }
+        .slide::before { content:''; position:absolute; inset:0; z-index:1; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); background-repeat:repeat; background-size:256px 256px; opacity:0.03; mix-blend-mode:overlay; }
+        .slide::after { content:''; position:absolute; inset:0; z-index:1; pointer-events:none; background:radial-gradient(ellipse at center, transparent 50%, var(--color-vignette) 100%); }
+        .hbar-row { display:flex; align-items:center; gap:8px; }
+        .hbar-label { font-size:1.18rem; color:#ffffff; width:160px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .hbar-track { flex:1; height:8px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; }
+        .hbar-fill { height:100%; border-radius:4px; width:0%; transition:width 0.8s ease; }
+        .hbar-val { font-size:1.18rem; font-weight:700; width:30px; text-align:right; flex-shrink:0; }
+        @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:0.01ms !important; transition-duration:0.2s !important; } }
+    </style>
+</head>
+<body>
+<div class="mouse-spotlight" style="position:fixed;inset:0;z-index:99;pointer-events:none;"></div>
+<div class="deck">
+
+<!-- ═══ SLIDE 1: TITLE ═══ -->
+<div class="slide slide-1 active" data-slide="1">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:520px;height:520px;top:-130px;right:-120px;background:#a78bfa;opacity:0.15;"></div>
+        <div class="blob" style="width:340px;height:340px;bottom:-90px;left:-70px;background:#38bdf8;opacity:0.12;"></div>
+        <div class="blob" style="width:220px;height:220px;top:40%;left:12%;background:#f472b6;opacity:0.10;"></div>
+    </div>
+    <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+    <div class="content" style="text-align:center;">
+        <div style="font-size:6rem;margin-bottom:1rem;animation:float 3s ease-in-out infinite;">🔬</div>
+        <h1 class="font-display text-[clamp(2rem,5.5vw,4.5rem)] font-black tracking-tight mb-4 reveal" style="background:linear-gradient(135deg,#a78bfa,#38bdf8,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AI Replaceability in<br>Corpus Linguistics</h1>
+        <p class="reveal" style="font-size:clamp(1.0rem,1.8vw,1.3rem);font-weight:300;color:#ffffff;letter-spacing:0.3em;text-transform:uppercase;">A Multi-Dimensional Benchmark Study</p>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 2: KARPATHY'S MAP ═══ -->
+<div class="slide slide-2" data-slide="2">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:400px;height:400px;top:-100px;right:-80px;background:#a78bfa;opacity:0.09;"></div>
+        <div class="blob" style="width:260px;height:260px;bottom:-60px;left:-40px;background:#38bdf8;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.5rem;">Background · Karpathy (2025)</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.8vw,2.8rem)] font-bold text-text mb-2 reveal">"Taxonomy of AI Replaceability"</h2>
+        <p class="reveal" style="font-size:1.05rem;color:#f1f5f9;max-width:700px;line-height:1.6;margin-bottom:1.2rem;">Andrej Karpathy's 2025 essay proposes a systematic framework for scoring occupational exposure to AI. He mapped <strong style="color:#f1f5f9;">342 occupations</strong> across a single 0–10 replaceability axis, sparking a broader conversation about methodology.</p>
+        <div class="reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.2rem;">
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:1.1rem;text-align:center;">
+                <div class="stat-glow" style="font-size:2.2rem;font-weight:900;color:#a78bfa;">342</div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-top:0.3rem;">Occupations Mapped</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:1.1rem;text-align:center;">
+                <div class="stat-glow" style="font-size:2.2rem;font-weight:900;color:#38bdf8;">0–10</div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-top:0.3rem;">Replaceability Scale</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:1.1rem;text-align:center;">
+                <div class="stat-glow" style="font-size:2.2rem;font-weight:900;color:#f472b6;">1</div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-top:0.3rem;">Dimension Only</div>
+            </div>
+        </div>
+        <div class="reveal" style="background:rgba(255,255,255,0.04);border-radius:10px;border-left:3px solid #f472b6;padding:0.8rem 1rem;">
+            <span style="font-size:1.1rem;color:#f1f5f9;"><strong style="color:#f1f5f9;">Key Limitation:</strong> A single replaceability score collapses task complexity into a single number — omitting the <em>why</em> (what dimensions make a task hard?) and the <em>when</em> (current vs. projected AI capability).</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 3: LANCASTER SERIES ═══ -->
+<div class="slide slide-3" data-slide="3">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:420px;height:420px;top:-110px;left:-80px;background:#38bdf8;opacity:0.09;"></div>
+        <div class="blob" style="width:270px;height:270px;bottom:-65px;right:-45px;background:#a78bfa;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.5rem;">Background · Lancaster CASS Series</div>
+        <h2 class="font-display text-[clamp(1.6rem,3.6vw,2.6rem)] font-bold text-text mb-2 reveal">"How Not to Be Replaced by AI"</h2>
+        <p class="reveal" style="font-size:1.05rem;color:#f1f5f9;line-height:1.6;margin-bottom:1.2rem;">Lancaster University's Centre for Corpus Approaches to Social Science (CASS) began an open-access series in 2024 exploring how corpus linguists should position themselves relative to AI. The series offers rich qualitative analysis but lacks a <strong style="color:#f1f5f9;">numeric scoring rubric</strong>.</p>
+        <div class="reveal" style="display:flex;flex-direction:column;gap:0.65rem;">
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.8rem;align-items:start;background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.2);border-radius:11px;padding:0.8rem 1rem;">
+                <span style="font-size:1.1rem;">📖</span>
+                <span style="font-size:1.1rem;color:#f1f5f9;line-height:1.5;"><strong style="color:#f1f5f9;">Scope:</strong> Covers 15+ sub-fields of corpus linguistics from lexicography to forensic linguistics, examining where AI tools currently assist vs. threaten human roles.</span>
+            </div>
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.8rem;align-items:start;background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.2);border-radius:11px;padding:0.8rem 1rem;">
+                <span style="font-size:1.1rem;">🔍</span>
+                <span style="font-size:1.1rem;color:#f1f5f9;line-height:1.5;"><strong style="color:#f1f5f9;">Analytical framing:</strong> Proposes that tasks requiring interpretive judgment, theoretical framing, and ethical deliberation remain most resistant to AI substitution.</span>
+            </div>
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.8rem;align-items:start;background:rgba(244,114,182,0.07);border:1px solid rgba(244,114,182,0.2);border-radius:11px;padding:0.8rem 1rem;">
+                <span style="font-size:1.1rem;">⚠️</span>
+                <span style="font-size:1.1rem;color:#f1f5f9;line-height:1.5;"><strong style="color:#f1f5f9;">Core limitation:</strong> Arguments remain qualitative and essay-form — no quantified, task-level, multi-dimensional replaceability scores that could be compared or replicated.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 4: ARXIV 2026 AGENT-DRIVEN CL ═══ -->
+<div class="slide slide-4" data-slide="4">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:410px;height:410px;top:-105px;right:-75px;background:#f472b6;opacity:0.09;"></div>
+        <div class="blob" style="width:265px;height:265px;bottom:-65px;left:-45px;background:#38bdf8;opacity:0.07;"></div>
+    </div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.5rem;">Background · arXiv 2026</div>
+        <h2 class="font-display text-[clamp(1.6rem,3.6vw,2.6rem)] font-bold text-text mb-2 reveal">Agent-Driven Corpus Linguistics</h2>
+        <p class="reveal" style="font-size:1.05rem;color:#f1f5f9;line-height:1.6;margin-bottom:1.2rem;">A 2026 arXiv preprint proposes an autonomous LLM agent loop for end-to-end corpus research — from corpus selection to result synthesis. It demonstrates that certain pipeline stages can be delegated to AI with minimal human intervention.</p>
+        <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:13px;padding:1rem 1.1rem;">
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#38bdf8;margin-bottom:0.6rem;">🔄 Four-Step Agent Loop</div>
+                <div style="display:flex;flex-direction:column;gap:5px;">
+                    <div style="font-size:1.1rem;color:#f1f5f9;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.06);">1 · Corpus selection &amp; sampling</div>
+                    <div style="font-size:1.1rem;color:#f1f5f9;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.06);">2 · Query design &amp; retrieval</div>
+                    <div style="font-size:1.1rem;color:#f1f5f9;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.06);">3 · Statistical analysis &amp; annotation</div>
+                    <div style="font-size:1.1rem;color:#f1f5f9;padding:4px 0;">4 · Result interpretation &amp; synthesis</div>
+                </div>
+            </div>
+            <div>
+                <div style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:11px;padding:0.9rem 1rem;margin-bottom:0.8rem;">
+                    <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#a78bfa;margin-bottom:0.4rem;">What It Covers</div>
+                    <div style="font-size:1.1rem;color:#f1f5f9;line-height:1.5;">Demonstrates AI capability on structured, deterministic corpus operations. Steps 1–3 are near-fully automated in the prototype.</div>
+                </div>
+                <div style="background:rgba(244,114,182,0.08);border:1px solid rgba(244,114,182,0.25);border-radius:11px;padding:0.9rem 1rem;">
+                    <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#f472b6;margin-bottom:0.4rem;">Key Gap</div>
+                    <div style="font-size:1.1rem;color:#f1f5f9;line-height:1.5;">No scored, multi-dimensional index of <em>which</em> tasks are most/least replaceable across the full corpus linguistics research spectrum.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 5: RESEARCH GAP ═══ -->
+<div class="slide slide-5" data-slide="5">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:460px;height:460px;top:-130px;left:-100px;background:#f472b6;opacity:0.10;"></div>
+        <div class="blob" style="width:280px;height:280px;bottom:-70px;right:-50px;background:#a78bfa;opacity:0.08;"></div>
+    </div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.5rem;">Research Gap</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.8vw,2.8rem)] font-bold text-text mb-3 reveal">What Is Missing</h2>
+        <div class="reveal" style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.4rem;">
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.9rem;align-items:start;background:rgba(244,114,182,0.07);border:1px solid rgba(244,114,182,0.2);border-radius:12px;padding:0.85rem 1rem;">
+                <span style="font-size:1.1rem;margin-top:2px;">❌</span>
+                <span style="font-size:1.0rem;color:#f1f5f9;line-height:1.5;">Karpathy covers occupations broadly — <strong style="color:#f1f5f9;">not task-level corpus linguistics</strong>, and uses only a single replaceability dimension.</span>
+            </div>
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.9rem;align-items:start;background:rgba(244,114,182,0.07);border:1px solid rgba(244,114,182,0.2);border-radius:12px;padding:0.85rem 1rem;">
+                <span style="font-size:1.1rem;margin-top:2px;">❌</span>
+                <span style="font-size:1.0rem;color:#f1f5f9;line-height:1.5;">Lancaster CASS provides rich analysis but <strong style="color:#f1f5f9;">no quantified, comparable scores</strong> that can be tracked across models or time.</span>
+            </div>
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.9rem;align-items:start;background:rgba(244,114,182,0.07);border:1px solid rgba(244,114,182,0.2);border-radius:12px;padding:0.85rem 1rem;">
+                <span style="font-size:1.1rem;margin-top:2px;">❌</span>
+                <span style="font-size:1.0rem;color:#f1f5f9;line-height:1.5;">The arXiv agent paper shows automation works for structured tasks but <strong style="color:#f1f5f9;">does not map which dimensions make tasks tractable</strong> to AI.</span>
+            </div>
+        </div>
+        <div class="reveal" style="background:linear-gradient(135deg,rgba(167,139,250,0.12),rgba(56,189,248,0.08));border:1px solid rgba(167,139,250,0.3);border-radius:14px;padding:1.1rem 1.3rem;">
+            <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#a78bfa;margin-bottom:0.5rem;">Research Question</div>
+            <p style="font-size:1.05rem;color:#f1f5f9;font-style:italic;line-height:1.6;">"To what extent can frontier AI models replace human researchers across the full spectrum of corpus linguistics tasks, and which task-level dimensions best predict that replaceability?"</p>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 6: SECTION A — ORIGINAL SCORING DIMENSIONS ═══ -->
+<div class="slide slide-6" data-slide="6">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:420px;height:420px;top:-110px;right:-80px;background:#38bdf8;opacity:0.08;"></div>
+        <div class="blob" style="width:260px;height:260px;bottom:-60px;left:-40px;background:#a78bfa;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+            <span style="display:inline-block;border:1px solid rgba(167,139,250,0.5);border-radius:20px;padding:0.2rem 0.9rem;font-size:1.05rem;letter-spacing:0.1em;text-transform:uppercase;color:#a78bfa;">Section A</span>
+        </div>
+        <h2 class="font-display text-[clamp(1.6rem,3.5vw,2.5rem)] font-bold text-text mb-1 reveal">Original Scoring Dimensions</h2>
+        <p style="font-size:1.0rem;color:#ffffff;margin-bottom:1rem;" class="reveal">Five core dimensions · derived from the Karpathy framework · extended for corpus linguistics</p>
+        <div class="reveal" style="display:flex;flex-direction:column;gap:0.6rem;">
+            <div style="display:grid;grid-template-columns:32px 1fr;gap:0.8rem;align-items:start;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:0.8rem 1rem;">
+                <span style="font-weight:800;font-size:1rem;color:#a78bfa;">1</span>
+                <div><div style="font-weight:600;font-size:1.0rem;color:#f1f5f9;">Human Feasibility</div><div style="font-size:0.90rem;color:#ffffff;margin-top:2px;">How feasible is it for a human to perform this task?</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:32px 1fr;gap:0.8rem;align-items:start;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:0.8rem 1rem;">
+                <span style="font-weight:800;font-size:1rem;color:#38bdf8;">2</span>
+                <div><div style="font-weight:600;font-size:1.0rem;color:#f1f5f9;">Research Significance</div><div style="font-size:0.90rem;color:#ffffff;margin-top:2px;">How significant is this task to the overall research?</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:32px 1fr;gap:0.8rem;align-items:start;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:0.8rem 1rem;">
+                <span style="font-weight:800;font-size:1rem;color:#f472b6;">3</span>
+                <div><div style="font-weight:600;font-size:1.0rem;color:#f1f5f9;">Current AI Replaceability</div><div style="font-size:0.90rem;color:#ffffff;margin-top:2px;">To what extent can today's AI replace a human on this task?</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:32px 1fr;gap:0.8rem;align-items:start;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:0.8rem 1rem;">
+                <span style="font-weight:800;font-size:1rem;color:#a78bfa;">4</span>
+                <div><div style="font-weight:600;font-size:1.0rem;color:#f1f5f9;">AI Replaceability in 10 Years</div><div style="font-size:0.90rem;color:#ffffff;margin-top:2px;">Projected replaceability given anticipated progress over the next decade.</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:32px 1fr;gap:0.8rem;align-items:start;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:0.8rem 1rem;">
+                <span style="font-weight:800;font-size:1rem;color:#38bdf8;">5</span>
+                <div><div style="font-weight:600;font-size:1.0rem;color:#f1f5f9;">Theoretical Maximum AI Replaceability</div><div style="font-size:0.90rem;color:#ffffff;margin-top:2px;">The upper-bound replaceability assuming no practical constraints.</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 7: SECTION B — ADDITIONAL INDICATORS ═══ -->
+<div class="slide slide-7" data-slide="7">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:460px;height:460px;top:-130px;left:-100px;background:#f472b6;opacity:0.10;"></div>
+        <div class="blob" style="width:280px;height:280px;bottom:-70px;right:-50px;background:#a78bfa;opacity:0.08;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+            <span style="display:inline-block;border:1px solid rgba(167,139,250,0.5);border-radius:20px;padding:0.2rem 0.9rem;font-size:1.05rem;letter-spacing:0.1em;text-transform:uppercase;color:#a78bfa;">Section B</span>
+        </div>
+        <h2 class="font-display text-[clamp(1.6rem,3.5vw,2.5rem)] font-bold text-text mb-1 reveal">Additional Indicators to Score</h2>
+        <p style="font-size:1.0rem;color:#ffffff;margin-bottom:1rem;" class="reveal">Eight sub-dimensions capturing technical and epistemic replaceability factors</p>
+        <div class="reveal" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.7rem;">
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:0.85rem 0.9rem;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size:1.1rem;font-weight:800;color:#a78bfa;margin-bottom:0.25rem;">6</div>
+                <div style="font-weight:600;font-size:1.1rem;color:#f1f5f9;line-height:1.3;margin-bottom:0.3rem;">Specification Extractability</div>
+                <div style="font-size:1.05rem;color:#ffffff;line-height:1.4;">Can the LM parse published methods into a machine-executable spec?</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:0.85rem 0.9rem;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size:1.1rem;font-weight:800;color:#38bdf8;margin-bottom:0.25rem;">7</div>
+                <div style="font-weight:600;font-size:1.1rem;color:#f1f5f9;line-height:1.3;margin-bottom:0.3rem;">Parameter Explicitness</div>
+                <div style="font-size:1.05rem;color:#ffffff;line-height:1.4;">Does the literature report the parameters AI would need to extract?</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:0.85rem 0.9rem;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size:1.1rem;font-weight:800;color:#f472b6;margin-bottom:0.25rem;">8</div>
+                <div style="font-weight:600;font-size:1.1rem;color:#f1f5f9;line-height:1.3;margin-bottom:0.3rem;">Execution Determinism</div>
+                <div style="font-size:1.05rem;color:#ffffff;line-height:1.4;">Identical inputs → identical outputs?</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:0.85rem 0.9rem;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size:1.1rem;font-weight:800;color:#a78bfa;margin-bottom:0.25rem;">9</div>
+                <div style="font-weight:600;font-size:1.1rem;color:#f1f5f9;line-height:1.3;margin-bottom:0.3rem;">Tool-chain Maturity</div>
+                <div style="font-size:1.05rem;color:#ffffff;line-height:1.4;">Can established libraries execute the task end-to-end?</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:0.85rem 0.9rem;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size:1.1rem;font-weight:800;color:#38bdf8;margin-bottom:0.25rem;">10</div>
+                <div style="font-weight:600;font-size:1.1rem;color:#f1f5f9;line-height:1.3;margin-bottom:0.3rem;">Interpretive Judgement</div>
+                <div style="font-size:1.05rem;color:#ffffff;line-height:1.4;">How much qualitative, contextual human judgement is needed?</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:0.85rem 0.9rem;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size:1.1rem;font-weight:800;color:#f472b6;margin-bottom:0.25rem;">11</div>
+                <div style="font-weight:600;font-size:1.1rem;color:#f1f5f9;line-height:1.3;margin-bottom:0.3rem;">Ground-Truth Availability</div>
+                <div style="font-size:1.05rem;color:#ffffff;line-height:1.4;">Can AI replication success be objectively measured?</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:0.85rem 0.9rem;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size:1.1rem;font-weight:800;color:#a78bfa;margin-bottom:0.25rem;">12</div>
+                <div style="font-weight:600;font-size:1.1rem;color:#f1f5f9;line-height:1.3;margin-bottom:0.3rem;">Robustness Tractability</div>
+                <div style="font-size:1.05rem;color:#ffffff;line-height:1.4;">Can AI vary parameters to map sensitivity of findings?</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:0.85rem 0.9rem;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="font-size:1.1rem;font-weight:800;color:#38bdf8;margin-bottom:0.25rem;">13</div>
+                <div style="font-weight:600;font-size:1.1rem;color:#f1f5f9;line-height:1.3;margin-bottom:0.3rem;">Verification Cost</div>
+                <div style="font-size:1.05rem;color:#ffffff;line-height:1.4;">Human time needed to audit AI's output vs. manual replication.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- ═══ SLIDE 8: EXPERIMENT PIPELINE ═══ -->
+<div class="slide slide-8" data-slide="8">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:420px;height:420px;top:-120px;left:-80px;background:#a78bfa;opacity:0.10;"></div>
+        <div class="blob" style="width:270px;height:270px;bottom:-70px;right:-50px;background:#38bdf8;opacity:0.08;"></div>
+    </div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Methodology · Experiment Design</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.8vw,2.8rem)] font-bold text-text mb-3 reveal">End-to-End Evaluation Pipeline</h2>
+        <div class="reveal" style="width:100%;overflow:visible;">
+        <svg viewBox="0 0 920 280" style="width:100%;height:auto;" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <linearGradient id="gBox1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.22"/><stop offset="100%" stop-color="#818cf8" stop-opacity="0.08"/></linearGradient>
+                <linearGradient id="gBox2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.22"/><stop offset="100%" stop-color="#7dd3fc" stop-opacity="0.08"/></linearGradient>
+                <linearGradient id="gBox3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f472b6" stop-opacity="0.22"/><stop offset="100%" stop-color="#fb7185" stop-opacity="0.08"/></linearGradient>
+                <marker id="arrowA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 Z" fill="rgba(255,255,255,0.45)"/></marker>
+            </defs>
+            <rect x="10" y="45" width="210" height="168" rx="14" fill="url(#gBox1)" stroke="rgba(167,139,250,0.45)" stroke-width="1.5"/>
+            <text x="115" y="73" text-anchor="middle" style="fill:#a78bfa;font-size:16px;font-weight:700;letter-spacing:1px;">STEP 1</text>
+            <text x="115" y="97" text-anchor="middle" style="fill:#ffffff;font-size:19px;font-weight:700;">Task Definition</text>
+            <text x="115" y="120" text-anchor="middle" style="fill:#ffffff;font-size:16px;">50 corpus-ling. tasks</text>
+            <text x="115" y="143" text-anchor="middle" style="fill:#ffffff;font-size:16px;">+ synthesized</text>
+            <text x="115" y="166" text-anchor="middle" style="fill:#ffffff;font-size:16px;">task dataset</text>
+            <line x1="222" y1="130" x2="268" y2="130" stroke="rgba(255,255,255,0.45)" stroke-width="2.5" marker-end="url(#arrowA)"/>
+            <rect x="270" y="45" width="210" height="168" rx="14" fill="url(#gBox2)" stroke="rgba(56,189,248,0.45)" stroke-width="1.5"/>
+            <text x="375" y="73" text-anchor="middle" style="fill:#38bdf8;font-size:16px;font-weight:700;letter-spacing:1px;">STEP 2</text>
+            <text x="375" y="97" text-anchor="middle" style="fill:#ffffff;font-size:19px;font-weight:700;">LM Agent Execution</text>
+            <text x="375" y="120" text-anchor="middle" style="fill:#ffffff;font-size:16px;">Orchestrator: Nemotron 3 Super</text>
+            <text x="375" y="143" text-anchor="middle" style="fill:#ffffff;font-size:16px;">Receives task + dataset</text>
+            <text x="375" y="166" text-anchor="middle" style="fill:#ffffff;font-size:16px;">→ completes the task</text>
+            <line x1="482" y1="130" x2="528" y2="130" stroke="rgba(255,255,255,0.45)" stroke-width="2.5" marker-end="url(#arrowA)"/>
+            <rect x="530" y="45" width="210" height="168" rx="14" fill="url(#gBox3)" stroke="rgba(244,114,182,0.45)" stroke-width="1.5"/>
+            <text x="635" y="73" text-anchor="middle" style="fill:#f472b6;font-size:16px;font-weight:700;letter-spacing:1px;">STEP 3</text>
+            <text x="635" y="97" text-anchor="middle" style="fill:#ffffff;font-size:19px;font-weight:700;">Benchmarking LLM Panel</text>
+            <text x="635" y="120" text-anchor="middle" style="fill:#ffffff;font-size:16px;">Receives: task + reasoning</text>
+            <text x="635" y="143" text-anchor="middle" style="fill:#ffffff;font-size:16px;">+ agent result</text>
+            <text x="635" y="166" text-anchor="middle" style="fill:#ffffff;font-size:16px;">Scores all 13 dimensions</text>
+            <line x1="742" y1="130" x2="788" y2="130" stroke="rgba(255,255,255,0.45)" stroke-width="2.5" marker-end="url(#arrowA)"/>
+            <rect x="790" y="45" width="122" height="168" rx="14" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/>
+            <text x="851" y="73" text-anchor="middle" style="fill:#ffffff;font-size:16px;font-weight:700;letter-spacing:1px;">OUTPUT</text>
+            <text x="851" y="100" text-anchor="middle" style="fill:#ffffff;font-size:19px;font-weight:700;">Scores</text>
+            <text x="851" y="126" text-anchor="middle" style="fill:#a78bfa;font-size:26px;font-weight:900;">×13</text>
+            <text x="851" y="150" text-anchor="middle" style="fill:#ffffff;font-size:16px;">dimensions</text>
+            <text x="851" y="170" text-anchor="middle" style="fill:#ffffff;font-size:16px;">per task</text>
+            <text x="115" y="252" text-anchor="middle" style="fill:#ffffff;font-size:15px;">Corpus research tasks</text>
+            <text x="375" y="252" text-anchor="middle" style="fill:#ffffff;font-size:15px;">Nemotron 3 Super (orchestrator)</text>
+            <text x="635" y="252" text-anchor="middle" style="fill:#ffffff;font-size:15px;">8 frontier models in panel</text>
+            <text x="851" y="252" text-anchor="middle" style="fill:#ffffff;font-size:15px;">4,909 total obs.</text>
+        </svg>
+        </div>
+        <div class="reveal" style="margin-top:0.8rem;background:rgba(255,255,255,0.04);border-left:3px solid #a78bfa;border-radius:8px;padding:0.65rem 1rem;">
+            <span style="font-size:1.05rem;color:#ffffff;">Each of the <strong style="color:#ffffff;">50 tasks</strong> is run through this pipeline once per benchmarking model — yielding <strong style="color:#ffffff;">50 × 8 × 13 = 4,909 scored observations</strong> in total.</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 9: LLM PANEL ═══ -->
+<div class="slide slide-9" data-slide="9">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:400px;height:400px;top:-110px;right:-80px;background:#38bdf8;opacity:0.09;"></div>
+        <div class="blob" style="width:260px;height:260px;bottom:-65px;left:-45px;background:#f472b6;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Methodology · Model Selection</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.8vw,2.7rem)] font-bold text-text mb-2 reveal">Models Used in This Study</h2>
+        <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;">
+            <div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#a78bfa;margin-bottom:0.5rem;">🤖 LM Agent — Orchestrator</div>
+                <div style="background:rgba(167,139,250,0.10);border:1.5px solid rgba(167,139,250,0.45);border-radius:14px;padding:1.1rem 1.2rem;">
+                    <div style="font-size:1.3rem;font-weight:800;color:#a78bfa;margin-bottom:0.3rem;">Nemotron 3 Super</div>
+                    <div style="font-size:1.05rem;color:#ffffff;line-height:1.55;">Performs every corpus-linguistics task on the synthesized dataset. Its reasoning trace and output are passed to the benchmarking panel for scoring.</div>
+                </div>
+            </div>
+            <div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#38bdf8;margin-bottom:0.5rem;">⚖️ Benchmarking Panel — 8 Judges</div>
+                <div style="display:flex;flex-direction:column;gap:0.4rem;">
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:0.5rem 0.9rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:1.1rem;font-weight:600;color:#ffffff;">Claude Opus 4.7</span>
+                        <span style="font-size:1.0rem;color:#ffffff;">Anthropic</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:0.5rem 0.9rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:1.1rem;font-weight:600;color:#ffffff;">Gemini 3.1 Pro</span>
+                        <span style="font-size:1.0rem;color:#ffffff;">Google DeepMind</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:0.5rem 0.9rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:1.1rem;font-weight:600;color:#ffffff;">GPT-5.4</span>
+                        <span style="font-size:1.0rem;color:#ffffff;">OpenAI</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:0.5rem 0.9rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:1.1rem;font-weight:600;color:#ffffff;">GPT-5.5</span>
+                        <span style="font-size:1.0rem;color:#ffffff;">OpenAI</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:0.5rem 0.9rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:1.1rem;font-weight:600;color:#ffffff;">Kimi K2.6</span>
+                        <span style="font-size:1.0rem;color:#ffffff;">Moonshot AI</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:0.5rem 0.9rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:1.1rem;font-weight:600;color:#ffffff;">Nemotron 3 Super</span>
+                        <span style="font-size:1.0rem;color:#ffffff;">NVIDIA</span>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(56,189,248,0.2);border-radius:10px;padding:0.5rem 0.9rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:1.1rem;font-weight:600;color:#ffffff;">Sonar-Pro</span>
+                        <span style="font-size:1.0rem;color:#ffffff;">Perplexity AI</span>
+                    </div>
+                    <div style="background:rgba(167,139,250,0.10);border:1.5px solid rgba(167,139,250,0.40);border-radius:10px;padding:0.5rem 0.9rem;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:1.1rem;font-weight:700;color:#a78bfa;">Model Council</span>
+                        <span style="font-size:0.95rem;color:#ffffff;">Claude 4.7 + GPT-5.5 + Gemini 3.1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 8: SECTION DIVIDER — FINDINGS ═══ -->
+<div class="slide slide-10" data-slide="10">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:520px;height:520px;top:-150px;right:-130px;background:#a78bfa;opacity:0.14;"></div>
+        <div class="blob" style="width:340px;height:340px;bottom:-100px;left:-80px;background:#38bdf8;opacity:0.11;"></div>
+        <div class="blob" style="width:200px;height:200px;top:35%;left:20%;background:#f472b6;opacity:0.08;"></div>
+    </div>
+    <canvas class="particle-canvas-ambient" style="position:absolute;inset:0;z-index:1;"></canvas>
+    <div class="content" style="text-align:center;">
+        <div class="reveal" style="display:inline-block;border:1px solid rgba(167,139,250,0.45);border-radius:24px;padding:0.3rem 1.1rem;font-size:1.05rem;letter-spacing:0.12em;text-transform:uppercase;color:#a78bfa;margin-bottom:1rem;">Empirical Findings</div>
+        <h1 class="font-display text-[clamp(2.2rem,5vw,4rem)] font-black tracking-tight reveal" style="background:linear-gradient(135deg,#a78bfa,#38bdf8,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:1rem;">Scoring 50 Tasks<br>Across 8 Frontier Models</h1>
+        <p class="reveal" style="font-size:clamp(1.0rem,1.7vw,1.2rem);font-weight:300;color:#ffffff;letter-spacing:0.25em;text-transform:uppercase;">13 dimensions · 4,909 observations · 29 sub-fields</p>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 9: DATASET OVERVIEW ═══ -->
+<div class="slide slide-11" data-slide="11">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:400px;height:400px;top:-100px;right:-80px;background:#a78bfa;opacity:0.09;"></div>
+        <div class="blob" style="width:260px;height:260px;bottom:-60px;left:-40px;background:#38bdf8;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Findings · Overview</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.8vw,2.7rem)] font-bold text-text mb-1 reveal">Dataset at a Glance</h2>
+        <p style="font-size:1.05rem;color:#f1f5f9;margin-bottom:1.2rem;" class="reveal">8 frontier models · 50 corpus-linguistics tasks · 13 scoring dimensions</p>
+        <div class="reveal" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1rem;">
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:1.2rem 1rem;text-align:center;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="stat-glow" style="font-size:2.4rem;font-weight:900;color:#a78bfa;line-height:1;" data-count="4909">0</div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-top:0.4rem;">Total Observations</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:1.2rem 1rem;text-align:center;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="stat-glow" style="font-size:2.4rem;font-weight:900;color:#38bdf8;line-height:1;" data-count="8">0</div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-top:0.4rem;">Frontier Models</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:1.2rem 1rem;text-align:center;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="stat-glow" style="font-size:2.4rem;font-weight:900;color:#f472b6;line-height:1;" data-count="50">0</div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-top:0.4rem;">Corpus Tasks</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:1.2rem 1rem;text-align:center;transition:transform 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="stat-glow" style="font-size:2.4rem;font-weight:900;color:#a78bfa;line-height:1;" data-count="29">0</div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-top:0.4rem;">Sub-fields</div>
+            </div>
+        </div>
+        <div class="reveal" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+            <div style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:0.9rem 1rem;border-left:3px solid #a78bfa;">
+                <div style="font-size:1.7rem;font-weight:800;color:#a78bfa;">7.35 <span style="font-size:1.05rem;font-weight:400;color:#ffffff;">/ 10</span></div>
+                <div style="font-size:1.05rem;color:#f1f5f9;margin-top:0.2rem;">Mean current AI replaceability</div>
+            </div>
+            <div style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);border-radius:12px;padding:0.9rem 1rem;border-left:3px solid #38bdf8;">
+                <div style="font-size:1.7rem;font-weight:800;color:#38bdf8;">8.94 <span style="font-size:1.05rem;font-weight:400;color:#ffffff;">/ 10</span></div>
+                <div style="font-size:1.05rem;color:#f1f5f9;margin-top:0.2rem;">Mean projected in 10 years</div>
+            </div>
+            <div style="background:rgba(244,114,182,0.08);border:1px solid rgba(244,114,182,0.25);border-radius:12px;padding:0.9rem 1rem;border-left:3px solid #f472b6;">
+                <div style="font-size:1.7rem;font-weight:800;color:#f472b6;">9.60 <span style="font-size:1.05rem;font-weight:400;color:#ffffff;">/ 10</span></div>
+                <div style="font-size:1.05rem;color:#f1f5f9;margin-top:0.2rem;">Theoretical maximum mean</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 10: 13-DIMENSION HORIZONTAL BAR CHART ═══ -->
+<div class="slide slide-12" data-slide="12">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:380px;height:380px;top:-90px;left:-70px;background:#38bdf8;opacity:0.08;"></div>
+        <div class="blob" style="width:250px;height:250px;bottom:-55px;right:-40px;background:#a78bfa;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Findings · Dimensions</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.5vw,2.5rem)] font-bold text-text mb-1 reveal">Mean Scores Across All 13 Dimensions</h2>
+        <p style="font-size:1.05rem;color:#ffffff;margin-bottom:0.7rem;" class="reveal">Averaged across 50 tasks &amp; 8 models · Scale 0–10 · Green = AI-friendly · Red = human-residual</p>
+        <div class="reveal" id="dim13-bars" style="display:flex;flex-direction:column;gap:4px;"></div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 11: TWO RESISTOR DIMENSIONS ═══ -->
+<div class="slide slide-13" data-slide="13">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:420px;height:420px;top:-110px;right:-80px;background:#f472b6;opacity:0.09;"></div>
+        <div class="blob" style="width:260px;height:260px;bottom:-60px;left:-40px;background:#a78bfa;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Findings · Human Residual</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.7vw,2.6rem)] font-bold text-text mb-1 reveal">Two Dimensions Resist Automation</h2>
+        <p style="font-size:1.1rem;color:#f1f5f9;margin-bottom:1rem;" class="reveal">Both strongly negatively correlated with current AI replaceability (r ≈ −0.95)</p>
+        <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:0.9rem;">
+            <div style="background:rgba(244,114,182,0.08);border:1px solid rgba(244,114,182,0.35);border-radius:16px;padding:1.4rem 1.5rem;">
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#f472b6;margin-bottom:0.5rem;">Dimension 10</div>
+                <div style="font-size:1.1rem;font-weight:700;color:#f1f5f9;margin-bottom:0.4rem;">Interpretive Judgement Load</div>
+                <div class="stat-glow" style="font-size:2.8rem;font-weight:900;color:#f472b6;line-height:1;margin-bottom:0.55rem;">4.34<span style="font-size:1rem;font-weight:400;color:#ffffff;"> / 10</span></div>
+                <div style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin-bottom:0.75rem;">
+                    <div class="bar-fill" data-width="43.4" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#f472b6,#fb7185);"></div>
+                </div>
+                <p style="font-size:1.05rem;color:#f1f5f9;line-height:1.5;">Qualitative, theoretical, contextual judgement irreducible to rules. Corpus-based metaphor studies peak at <strong style="color:#f1f5f9;">8.57/10</strong> on this dimension — the highest in the dataset.</p>
+            </div>
+            <div style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.35);border-radius:16px;padding:1.4rem 1.5rem;">
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#a78bfa;margin-bottom:0.5rem;">Dimension 13</div>
+                <div style="font-size:1.1rem;font-weight:700;color:#f1f5f9;margin-bottom:0.4rem;">Verification Cost</div>
+                <div class="stat-glow" style="font-size:2.8rem;font-weight:900;color:#a78bfa;line-height:1;margin-bottom:0.55rem;">4.46<span style="font-size:1rem;font-weight:400;color:#ffffff;"> / 10</span></div>
+                <div style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin-bottom:0.75rem;">
+                    <div class="bar-fill" data-width="44.6" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#a78bfa,#c4b5fd);"></div>
+                </div>
+                <p style="font-size:1.05rem;color:#f1f5f9;line-height:1.5;">Human expert time required to audit AI output relative to manual replication. Forensic &amp; authorship attribution tasks score <strong style="color:#f1f5f9;">7.8/10</strong> — auditing an AI forensic report takes near-equivalent time to doing it manually.</p>
+            </div>
+        </div>
+        <div class="reveal" style="background:rgba(255,255,255,0.04);border-radius:10px;padding:0.7rem 1rem;border-left:3px solid #f472b6;">
+            <span style="font-size:1.1rem;color:#f1f5f9;">Together, D10 + D13 form the <strong style="color:#f1f5f9;">"irreducible human core"</strong> — tasks with high scores on both dimensions are the least economically viable to automate even at high capability levels.</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 12: SCATTER — JUDGEMENT vs REPLACEABILITY ═══ -->
+<div class="slide slide-14" data-slide="14">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:400px;height:400px;top:-110px;left:-80px;background:#a78bfa;opacity:0.09;"></div>
+        <div class="blob" style="width:260px;height:260px;bottom:-60px;right:-40px;background:#f472b6;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Findings · Correlation</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.5vw,2.5rem)] font-bold text-text mb-1 reveal">Interpretive Judgement vs. Current AI Replaceability</h2>
+        <p style="font-size:1.1rem;color:#ffffff;margin-bottom:0.8rem;" class="reveal">Each point = one corpus task · r = −0.95 · The more judgement a task demands, the less replaceable it is today</p>
+        <div class="reveal" style="display:grid;grid-template-columns:1fr auto;gap:1.5rem;align-items:start;">
+            <div>
+                <svg id="scatter-svg" viewBox="0 0 420 260" style="width:100%;height:auto;" preserveAspectRatio="xMidYMid meet">
+                    <!-- Axes -->
+                    <line x1="50" y1="20" x2="50" y2="230" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+                    <line x1="50" y1="230" x2="410" y2="230" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+                    <!-- Y labels (Replaceability 0-10) -->
+                    <text x="44" y="234" text-anchor="end" style="fill:#ffffff;font-size:0.95rem;">0</text>
+                    <text x="44" y="186" text-anchor="end" style="fill:#ffffff;font-size:0.95rem;">2</text>
+                    <text x="44" y="138" text-anchor="end" style="fill:#ffffff;font-size:0.95rem;">5</text>
+                    <text x="44" y="90" text-anchor="end" style="fill:#ffffff;font-size:0.95rem;">7</text>
+                    <text x="44" y="42" text-anchor="end" style="fill:#ffffff;font-size:0.95rem;">10</text>
+                    <!-- X labels (Judgement 0-10) -->
+                    <text x="50" y="245" text-anchor="middle" style="fill:#ffffff;font-size:0.95rem;">0</text>
+                    <text x="122" y="245" text-anchor="middle" style="fill:#ffffff;font-size:0.95rem;">2</text>
+                    <text x="230" y="245" text-anchor="middle" style="fill:#ffffff;font-size:0.95rem;">5</text>
+                    <text x="338" y="245" text-anchor="middle" style="fill:#ffffff;font-size:0.95rem;">8</text>
+                    <text x="410" y="245" text-anchor="middle" style="fill:#ffffff;font-size:0.95rem;">10</text>
+                    <!-- Axis labels -->
+                    <text x="230" y="258" text-anchor="middle" style="fill:#ffffff;font-size:1.0rem;">D10 Interpretive Judgement Load →</text>
+                    <text x="14" y="125" text-anchor="middle" transform="rotate(-90,14,125)" style="fill:#ffffff;font-size:1.0rem;">D3 Current AI Replaceability →</text>
+                    <!-- Trend line r=-0.95 approx -->
+                    <line x1="50" y1="42" x2="410" y2="220" stroke="rgba(167,139,250,0.35)" stroke-width="1.5" stroke-dasharray="4,3"/>
+                    <!-- Scatter points: x=50+(judgement/10)*360, y=230-(repl/10)*210 -->
+                    <!-- Mechanical/lexical cluster (low judge, high repl) -->
+                    <circle cx="72" cy="46" r="5" fill="#22c55e" opacity="0.85" title="Wordlist extraction 9.6"/>
+                    <circle cx="65" cy="48" r="5" fill="#22c55e" opacity="0.8"/>
+                    <circle cx="79" cy="51" r="5" fill="#4ade80" opacity="0.8"/>
+                    <circle cx="85" cy="55" r="5" fill="#4ade80" opacity="0.75"/>
+                    <circle cx="90" cy="58" r="5" fill="#a3e635" opacity="0.75"/>
+                    <circle cx="97" cy="60" r="5" fill="#a3e635" opacity="0.7"/>
+                    <circle cx="104" cy="65" r="5" fill="#a3e635" opacity="0.7"/>
+                    <circle cx="110" cy="67" r="5" fill="#38bdf8" opacity="0.7"/>
+                    <!-- Middle cluster -->
+                    <circle cx="158" cy="90" r="5" fill="#38bdf8" opacity="0.7"/>
+                    <circle cx="165" cy="95" r="5" fill="#7dd3fc" opacity="0.7"/>
+                    <circle cx="172" cy="98" r="5" fill="#7dd3fc" opacity="0.7"/>
+                    <circle cx="185" cy="105" r="5" fill="#a78bfa" opacity="0.7"/>
+                    <circle cx="195" cy="112" r="5" fill="#a78bfa" opacity="0.7"/>
+                    <circle cx="207" cy="118" r="5" fill="#c4b5fd" opacity="0.7"/>
+                    <circle cx="220" cy="125" r="5" fill="#c4b5fd" opacity="0.7"/>
+                    <!-- Interpretive cluster (high judge, low repl) -->
+                    <circle cx="288" cy="158" r="5" fill="#fb923c" opacity="0.8"/>
+                    <circle cx="302" cy="163" r="5" fill="#fbbf24" opacity="0.8"/>
+                    <circle cx="318" cy="169" r="5" fill="#f97316" opacity="0.8"/>
+                    <circle cx="334" cy="175" r="5" fill="#ef4444" opacity="0.85"/>
+                    <circle cx="346" cy="180" r="5" fill="#f472b6" opacity="0.85"/>
+                    <circle cx="358" cy="186" r="5" fill="#f472b6" opacity="0.9"/>
+                    <circle cx="373" cy="193" r="5" fill="#f472b6" opacity="0.9"/>
+                    <!-- Labels for extremes -->
+                    <text x="68" y="38" style="fill:#22c55e;font-size:1.05rem;">Wordlist / TTR</text>
+                    <text x="335" y="197" style="fill:#f472b6;font-size:1.05rem;">Metaphor / CDA</text>
+                </svg>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.6rem;min-width:180px;">
+                <div style="font-size:1.0rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-bottom:0.3rem;">Point Colour = Sub-field</div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0;"></span><span style="font-size:1.05rem;color:#f1f5f9;">Lexicography / TTR</span></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#38bdf8;display:inline-block;flex-shrink:0;"></span><span style="font-size:1.05rem;color:#f1f5f9;">Diachronic / learner</span></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#a78bfa;display:inline-block;flex-shrink:0;"></span><span style="font-size:1.05rem;color:#f1f5f9;">Pragmatic / social</span></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#fb923c;display:inline-block;flex-shrink:0;"></span><span style="font-size:1.05rem;color:#f1f5f9;">Forensic</span></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:#f472b6;display:inline-block;flex-shrink:0;"></span><span style="font-size:1.05rem;color:#f1f5f9;">Metaphor / CDA</span></div>
+                <div style="margin-top:0.6rem;background:rgba(255,255,255,0.04);border-radius:8px;padding:0.6rem 0.7rem;border-left:2px solid #a78bfa;">
+                    <div style="font-size:1.05rem;font-weight:800;color:#a78bfa;">r = −0.95</div>
+                    <div style="font-size:1.05rem;color:#ffffff;margin-top:0.2rem;">Pearson correlation across 50 tasks</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 13: TOP / BOTTOM 5 TASKS ═══ -->
+<div class="slide slide-15" data-slide="15">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:390px;height:390px;top:-95px;right:-75px;background:#a78bfa;opacity:0.09;"></div>
+        <div class="blob" style="width:250px;height:250px;bottom:-60px;left:-40px;background:#38bdf8;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Findings · Task Rankings</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.5vw,2.5rem)] font-bold text-text mb-1 reveal">Most vs. Least Replaceable Tasks</h2>
+        <p style="font-size:1.1rem;color:#ffffff;margin-bottom:1rem;" class="reveal">Current AI replaceability score (D3) · mean across 8 models · scale 0–10</p>
+        <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;">
+            <div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#22c55e;margin-bottom:0.55rem;">🟢 Highest Replaceability</div>
+                <div id="top5-bars" style="display:flex;flex-direction:column;gap:5px;"></div>
+            </div>
+            <div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#f472b6;margin-bottom:0.55rem;">🔴 Lowest Replaceability</div>
+                <div id="bot5-bars" style="display:flex;flex-direction:column;gap:5px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 14: SUB-FIELD AI EXPOSURE ═══ -->
+<div class="slide slide-16" data-slide="16">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:380px;height:380px;top:-90px;left:-60px;background:#38bdf8;opacity:0.08;"></div>
+        <div class="blob" style="width:260px;height:260px;bottom:-60px;right:-40px;background:#a78bfa;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Findings · Sub-field Analysis</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.5vw,2.5rem)] font-bold text-text mb-1 reveal">AI Exposure by Sub-field</h2>
+        <p style="font-size:1.1rem;color:#ffffff;margin-bottom:0.9rem;" class="reveal">Mean current replaceability per research area · quantitative → hermeneutic gradient</p>
+        <div class="reveal" id="subfield-bars" style="display:grid;grid-template-columns:1fr 1fr;gap:5px 1.8rem;"></div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 15: 10-YEAR CATCH-UP ═══ -->
+<div class="slide slide-17" data-slide="17">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:400px;height:400px;top:-100px;right:-80px;background:#38bdf8;opacity:0.09;"></div>
+        <div class="blob" style="width:260px;height:260px;bottom:-60px;left:-40px;background:#f472b6;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Findings · 10-Year Dynamics</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.5vw,2.5rem)] font-bold text-text mb-1 reveal">Biggest Projected Catch-Up: Now → 10 Years</h2>
+        <p style="font-size:1.1rem;color:#ffffff;margin-bottom:1rem;" class="reveal">Tasks with the largest expected AI capability gain by 2035 · score delta on 0–10 scale</p>
+        <div class="reveal" id="catchup-bars" style="display:flex;flex-direction:column;gap:7px;"></div>
+        <div class="reveal" style="margin-top:0.9rem;padding:0.7rem 1rem;background:rgba(56,189,248,0.07);border-radius:10px;border-left:3px solid #38bdf8;">
+            <span style="font-size:1.1rem;color:#f1f5f9;">All top catch-up tasks are from <strong style="color:#f1f5f9;">interpretive sub-fields</strong> — metaphor, discourse, cognitive, forensic. Mechanical ceiling near-reached; interpretive frontier closes fastest over 2025–2035.</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 16: INTER-MODEL AGREEMENT + RADAR ═══ -->
+<div class="slide slide-18" data-slide="18">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:380px;height:380px;top:-90px;right:-70px;background:#a78bfa;opacity:0.08;"></div>
+        <div class="blob" style="width:250px;height:250px;bottom:-55px;left:-35px;background:#38bdf8;opacity:0.07;"></div>
+    </div>
+    <div class="content">
+        <div class="reveal" style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;margin-bottom:0.4rem;">Findings · Model Agreement</div>
+        <h2 class="font-display text-[clamp(1.7rem,3.5vw,2.5rem)] font-bold text-text mb-2 reveal">Inter-Model Agreement on Replaceability</h2>
+        <div class="reveal" style="display:grid;grid-template-columns:1.1fr 1fr;gap:1.2rem;align-items:start;">
+            <!-- Radar -->
+            <div>
+                <div style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.1em;color:#ffffff;margin-bottom:0.4rem;">Model profiles · 5 key dimensions (0–10 scale)</div>
+                <svg viewBox="0 0 280 270" style="width:100%;max-width:255px;height:auto;">
+                    <defs>
+                        <linearGradient id="rGrad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.35"/><stop offset="100%" stop-color="#818cf8" stop-opacity="0.1"/></linearGradient>
+                    </defs>
+                    <polygon points="140,50 221,104 197,200 83,200 59,104" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.5"/>
+                    <polygon points="140,68 210,113 189,188 91,188 70,113" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.5"/>
+                    <polygon points="140,86 199,122 181,176 99,176 81,122" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+                    <line x1="140" y1="140" x2="140" y2="50" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+                    <line x1="140" y1="140" x2="221" y2="104" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+                    <line x1="140" y1="140" x2="197" y2="200" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+                    <line x1="140" y1="140" x2="83" y2="200" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+                    <line x1="140" y1="140" x2="59" y2="104" stroke="rgba(255,255,255,0.07)" stroke-width="0.5"/>
+                    <!-- Sonar Pro (highest scorer): Repl=7.89, SpecEx=7.8, ExecDet=8.2, Toolchain=8.5, Verif(low)=3.04 → inverted for viz -->
+                    <polygon class="radar-shape" points="140,69 207,112 192,200 86,196 68,113" fill="url(#rGrad1)" stroke="#a78bfa" stroke-width="2" stroke-dasharray="800" stroke-dashoffset="800" style="transition:stroke-dashoffset 1.4s cubic-bezier(0.16,1,0.3,1);"/>
+                    <!-- Nemotron-3 (lowest scorer): Repl=6.74 -->
+                    <polygon points="140,79 200,117 186,192 94,188 74,118" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.7"/>
+                    <g class="radar-dots" style="opacity:0;transition:opacity 0.5s ease 1s;">
+                        <circle cx="140" cy="69" r="4" fill="#a78bfa"/>
+                        <circle cx="207" cy="112" r="4" fill="#a78bfa"/>
+                        <circle cx="192" cy="200" r="4" fill="#a78bfa"/>
+                        <circle cx="86" cy="196" r="4" fill="#a78bfa"/>
+                        <circle cx="68" cy="113" r="4" fill="#a78bfa"/>
+                    </g>
+                    <text x="140" y="42" text-anchor="middle" style="fill:#ffffff;font-size:0.95rem;">Replaceability</text>
+                    <text x="232" y="104" text-anchor="start" style="fill:#ffffff;font-size:0.95rem;">Spec. Extract.</text>
+                    <text x="204" y="216" text-anchor="middle" style="fill:#ffffff;font-size:0.95rem;">Exec. Det.</text>
+                    <text x="76" y="216" text-anchor="middle" style="fill:#ffffff;font-size:0.95rem;">Toolchain</text>
+                    <text x="42" y="104" text-anchor="end" style="fill:#ffffff;font-size:0.95rem;">Verif. Cost</text>
+                </svg>
+                <div style="display:flex;gap:1rem;margin-top:0.3rem;">
+                    <span style="font-size:1.05rem;color:#ffffff;display:flex;align-items:center;gap:4px;"><span style="width:14px;height:3px;background:#a78bfa;display:inline-block;border-radius:2px;"></span>Sonar Pro (highest)</span>
+                    <span style="font-size:1.05rem;color:#ffffff;display:flex;align-items:center;gap:4px;"><span style="width:14px;height:2px;background:#38bdf8;display:inline-block;"></span>Nemotron-3 (lowest)</span>
+                </div>
+            </div>
+            <!-- Model table -->
+            <div style="display:flex;flex-direction:column;gap:0.55rem;">
+                <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:0.75rem 0.9rem;">
+                    <div style="font-size:1.05rem;font-weight:800;color:#38bdf8;margin-bottom:0.15rem;">Sonar Pro</div>
+                    <div style="font-size:1.05rem;color:#f1f5f9;line-height:1.4;">Most AI-optimistic · current mean <strong style="color:#f1f5f9;">7.89</strong> · lowest verification cost <strong style="color:#f1f5f9;">3.04</strong></div>
+                </div>
+                <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:0.75rem 0.9rem;">
+                    <div style="font-size:1.05rem;font-weight:800;color:#f472b6;margin-bottom:0.15rem;">Nemotron-3</div>
+                    <div style="font-size:1.05rem;color:#f1f5f9;line-height:1.4;">Most conservative · current mean <strong style="color:#f1f5f9;">6.74</strong> · highest judgement scores</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:11px;padding:0.75rem 0.9rem;">
+                    <div style="font-size:1.05rem;font-weight:800;color:#a78bfa;margin-bottom:0.15rem;">Model spread: σ = 0.33–1.42</div>
+                    <div style="font-size:1.05rem;color:#f1f5f9;line-height:1.4;">Low σ=0.33 on wordlist extraction · High σ=1.42 on metaphor interpretation — uncertainty highest where it matters most</div>
+                </div>
+                <div style="background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.2);border-radius:11px;padding:0.75rem 0.9rem;">
+                    <div style="font-size:1.05rem;font-weight:800;color:#38bdf8;margin-bottom:0.15rem;">Strong consensus on mechanics</div>
+                    <div style="font-size:1.05rem;color:#f1f5f9;line-height:1.4;">All 8 models agree D1 Human Feasibility = high (mean <strong style="color:#f1f5f9;">8.52</strong>); diverge on D10 Interpretive Load</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SLIDE 17: CONCLUSION ═══ -->
+<div class="slide slide-19" data-slide="19">
+    <div class="gradient-mesh">
+        <div class="blob" style="width:500px;height:500px;top:-130px;right:-110px;background:#a78bfa;opacity:0.14;"></div>
+        <div class="blob" style="width:320px;height:320px;bottom:-80px;left:-60px;background:#38bdf8;opacity:0.11;"></div>
+        <div class="blob" style="width:220px;height:220px;top:38%;left:10%;background:#f472b6;opacity:0.08;"></div>
+    </div>
+    <canvas class="particle-canvas" style="position:absolute;inset:0;z-index:1;"></canvas>
+    <div class="content">
+        <div class="reveal" style="text-align:center;margin-bottom:0.5rem;">
+            <span style="font-size:1.05rem;text-transform:uppercase;letter-spacing:0.12em;color:#ffffff;">Conclusion</span>
+        </div>
+        <h2 class="font-display text-[clamp(1.7rem,3.8vw,2.7rem)] font-bold text-center mb-4 reveal" style="background:linear-gradient(135deg,#a78bfa,#38bdf8,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">What the Benchmark Tells Us</h2>
+        <div class="reveal" style="display:flex;flex-direction:column;gap:0.7rem;max-width:840px;margin:0 auto;">
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.9rem;align-items:start;background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.2);border-radius:12px;padding:0.85rem 1rem;">
+                <span style="font-size:1.2rem;margin-top:2px;">⚡</span>
+                <span style="font-size:1.0rem;color:#f1f5f9;line-height:1.5;"><strong style="color:#f1f5f9;">Corpus linguistics is already highly automatable</strong> — field-average current replaceability 7.35/10 · mechanical &amp; lexicogrammatical tasks reach 9/10 today.</span>
+            </div>
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.9rem;align-items:start;background:rgba(56,189,248,0.07);border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:0.85rem 1rem;">
+                <span style="font-size:1.2rem;margin-top:2px;">🧠</span>
+                <span style="font-size:1.0rem;color:#f1f5f9;line-height:1.5;"><strong style="color:#f1f5f9;">The irreducible human core</strong> — Interpretive Judgement Load (4.34/10) + Verification Cost (4.46/10) — concentrated in metaphor, discourse, cognitive &amp; forensic corpus work.</span>
+            </div>
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.9rem;align-items:start;background:rgba(244,114,182,0.07);border:1px solid rgba(244,114,182,0.2);border-radius:12px;padding:0.85rem 1rem;">
+                <span style="font-size:1.2rem;margin-top:2px;">📈</span>
+                <span style="font-size:1.0rem;color:#f1f5f9;line-height:1.5;"><strong style="color:#f1f5f9;">10-year catch-up fastest in interpretive tasks</strong> (+2.62 pts for MIPVU metaphor identification). Mechanical ceiling near-reached; interpretive frontier closes faster than expected.</span>
+            </div>
+            <div style="display:grid;grid-template-columns:36px 1fr;gap:0.9rem;align-items:start;background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.2);border-radius:12px;padding:0.85rem 1rem;">
+                <span style="font-size:1.2rem;margin-top:2px;">🤝</span>
+                <span style="font-size:1.0rem;color:#f1f5f9;line-height:1.5;"><strong style="color:#f1f5f9;">Models agree on structured tasks, diverge on interpretation</strong> — σ=0.33 on wordlist extraction vs. σ=1.42 on metaphor. Epistemic uncertainty is highest where it matters most.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- end .deck -->
+
+<div class="nav-controls">
+    <button class="nav-btn" onclick="changeSlide(-1)">&#8249;</button>
+    <div class="slide-dots" id="dots"></div>
+    <button class="nav-btn" onclick="changeSlide(1)">&#8250;</button>
+    <span class="slide-counter" id="counter">1 / 17</span>
+</div>
+
+<script>
+let current = 1;
+const total = document.querySelectorAll('.slide').length;
+const dotsContainer = document.getElementById('dots');
+const counter = document.getElementById('counter');
+for (let i = 1; i <= total; i++) { const dot = document.createElement('div'); dot.className = 'dot' + (i === 1 ? ' active' : ''); dot.onclick = () => goToSlide(i); dotsContainer.appendChild(dot); }
+function goToSlide(n) {
+    const prev = document.querySelector('.slide.active');
+    const next = document.querySelector(`.slide[data-slide="${n}"]`);
+    if (prev) prev.classList.remove('active');
+    if (next) { next.classList.add('active'); animateSlide(next); }
+    current = n; updateNav();
+}
+function changeSlide(dir) { let next = current + dir; if (next < 1) next = total; if (next > total) next = 1; goToSlide(next); }
+function updateNav() { document.querySelectorAll('.dot').forEach((d, i) => { d.classList.toggle('active', i + 1 === current); }); counter.textContent = current + ' / ' + total; }
+document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); changeSlide(1); } if (e.key === 'ArrowLeft') { e.preventDefault(); changeSlide(-1); } });
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+document.addEventListener('touchend', (e) => { const diff = touchStartX - e.changedTouches[0].clientX; if (Math.abs(diff) > 50) changeSlide(diff > 0 ? 1 : -1); });
+
+function animateSlide(slide) {
+    slide.querySelectorAll('.reveal').forEach((el, i) => {
+        el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translateY(20px)'; el.offsetHeight;
+        const delay = i * 0.09;
+        el.style.transition = `opacity 0.38s ease ${delay}s, transform 0.38s ease ${delay}s`;
+        el.style.opacity = '1'; el.style.transform = 'translateY(0px)';
+    });
+    animateSlideEffects(slide);
+}
+
+function animateSlideEffects(slide) {
+    /* Counters */
+    slide.querySelectorAll('[data-count]:not(.counted)').forEach(el => {
+        el.classList.add('counted');
+        const target = parseInt(el.dataset.count);
+        const suffix = el.dataset.suffix || '', prefix = el.dataset.prefix || '';
+        let cur = 0; const step = target / 40;
+        const timer = setInterval(() => { cur += step; if (cur >= target) { cur = target; clearInterval(timer); } el.textContent = prefix + Math.round(cur).toLocaleString() + suffix; }, 30);
+    });
+    /* Bar fills */
+    slide.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar, i) => {
+        bar.classList.add('fill-init');
+        bar.style.width = '0%'; bar.style.transition = `width 0.7s ease ${i * 0.075}s`; bar.offsetHeight; bar.style.width = bar.dataset.width + '%';
+    });
+    /* Radar shapes */
+    slide.querySelectorAll('.radar-shape:not(.radar-init)').forEach(shape => {
+        shape.classList.add('radar-init');
+        shape.style.strokeDashoffset = '0';
+        const dots = shape.closest('svg')?.querySelector('.radar-dots'); if (dots) { dots.style.opacity = '1'; }
+    });
+
+    /* ── Slide 10: 13-dimension bars (built dynamically) ── */
+    const dimBar = slide.querySelector('#dim13-bars');
+    if (dimBar && !dimBar.dataset.init) {
+        dimBar.dataset.init = '1';
+        const dims = [
+            {label:'D1  Human Feasibility',        val:8.52, color:'#22c55e'},
+            {label:'D2  Research Significance',     val:8.33, color:'#4ade80'},
+            {label:'D3  Current AI Replaceability', val:7.35, color:'#a3e635'},
+            {label:'D4  AI Repl. in 10 Years',      val:8.94, color:'#38bdf8'},
+            {label:'D5  Theoretical Max Repl.',     val:9.60, color:'#7dd3fc'},
+            {label:'D6  Spec. Extractability',      val:7.18, color:'#a78bfa'},
+            {label:'D7  Parameter Explicitness',    val:6.82, color:'#c4b5fd'},
+            {label:'D8  Execution Determinism',     val:7.95, color:'#818cf8'},
+            {label:'D9  Tool-chain Maturity',       val:7.44, color:'#6366f1'},
+            {label:'D10 Interpretive Judgement',    val:4.34, color:'#f472b6'},
+            {label:'D11 Ground-Truth Avail.',       val:7.10, color:'#fb923c'},
+            {label:'D12 Robustness Tractability',   val:6.68, color:'#fbbf24'},
+            {label:'D13 Verification Cost',         val:4.46, color:'#f87171'},
+        ];
+        dims.forEach(d => {
+            const row = document.createElement('div');
+            row.className = 'hbar-row';
+            row.innerHTML = `<div class="hbar-label" title="${d.label}">${d.label}</div><div class="hbar-track"><div class="bar-fill" data-width="${d.val/10*100}" style="height:100%;width:0%;border-radius:4px;background:${d.color};"></div></div><div class="hbar-val" style="color:${d.color};">${d.val}</div>`;
+            dimBar.appendChild(row);
+        });
+        dimBar.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar, i) => {
+            bar.classList.add('fill-init'); bar.style.width='0%'; bar.style.transition=`width 0.7s ease ${i*0.05}s`; bar.offsetHeight; bar.style.width=bar.dataset.width+'%';
+        });
+    }
+
+    /* ── Slide 13: top/bottom tasks ── */
+    const top5 = slide.querySelector('#top5-bars');
+    const bot5 = slide.querySelector('#bot5-bars');
+    if (top5 && !top5.dataset.init) {
+        top5.dataset.init = '1';
+        [{label:'Wordlist extraction (AntConc)',val:9.6},{label:'Collocate frequency (MI score)',val:9.5},{label:'Type-token ratio computation',val:9.4},{label:'Keyword list generation (LL)',val:9.3},{label:'N-gram frequency profiling',val:9.2}].forEach(t => {
+            const row = document.createElement('div'); row.className = 'hbar-row';
+            row.innerHTML = `<div class="hbar-label" style="color:#f1f5f9;" title="${t.label}">${t.label}</div><div class="hbar-track"><div class="bar-fill" data-width="${t.val*10}" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#22c55e,#4ade80);"></div></div><div class="hbar-val" style="color:#22c55e;">${t.val}</div>`;
+            top5.appendChild(row);
+        });
+        top5.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar,i)=>{bar.classList.add('fill-init');bar.style.width='0%';bar.style.transition=`width 0.7s ease ${i*0.07}s`;bar.offsetHeight;bar.style.width=bar.dataset.width+'%';});
+    }
+    if (bot5 && !bot5.dataset.init) {
+        bot5.dataset.init = '1';
+        [{label:'Metaphor interpretation (MIPVU)',val:4.8},{label:'Corpus-based semantic prosody',val:5.0},{label:'Pragmatic inference coding',val:5.1},{label:'Critical discourse analysis',val:5.2},{label:'Forensic stylometric authorship',val:5.4}].forEach(t => {
+            const row = document.createElement('div'); row.className = 'hbar-row';
+            row.innerHTML = `<div class="hbar-label" style="color:#f1f5f9;" title="${t.label}">${t.label}</div><div class="hbar-track"><div class="bar-fill" data-width="${t.val*10}" style="height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#f472b6,#fb7185);"></div></div><div class="hbar-val" style="color:#f472b6;">${t.val}</div>`;
+            bot5.appendChild(row);
+        });
+        bot5.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar,i)=>{bar.classList.add('fill-init');bar.style.width='0%';bar.style.transition=`width 0.7s ease ${i*0.07}s`;bar.offsetHeight;bar.style.width=bar.dataset.width+'%';});
+    }
+
+    /* ── Slide 14: sub-field bars ── */
+    const sfBars = slide.querySelector('#subfield-bars');
+    if (sfBars && !sfBars.dataset.init) {
+        sfBars.dataset.init = '1';
+        const subfields = [
+            {label:'Corpus lexicography',val:9.1,color:'#22c55e'},{label:'Computational stylistics',val:8.8,color:'#4ade80'},
+            {label:'Learner corpus research',val:8.5,color:'#a3e635'},{label:'Diachronic corpus ling.',val:8.2,color:'#38bdf8'},
+            {label:'Sociolinguistic corpus work',val:7.6,color:'#7dd3fc'},{label:'Pragmatic annotation',val:7.1,color:'#a78bfa'},
+            {label:'Contrastive corpus ling.',val:6.8,color:'#c4b5fd'},{label:'Translation corpus studies',val:6.5,color:'#fb923c'},
+            {label:'Forensic linguistics',val:6.0,color:'#fbbf24'},{label:'Cognitive corpus ling.',val:5.7,color:'#f97316'},
+            {label:'Critical discourse analysis',val:5.3,color:'#ef4444'},{label:'Corpus-based metaphor',val:4.9,color:'#f472b6'},
+        ];
+        subfields.forEach(sf => {
+            const row = document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:6px;';
+            row.innerHTML=`<div style="font-size:1.05rem;color:#ffffff;width:150px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${sf.label}">${sf.label}</div><div style="flex:1;height:7px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;"><div class="bar-fill" data-width="${sf.val*10}" style="height:100%;width:0%;border-radius:4px;background:${sf.color};"></div></div><div style="font-size:1.0rem;font-weight:700;color:${sf.color};width:28px;text-align:right;flex-shrink:0;">${sf.val}</div>`;
+            sfBars.appendChild(row);
+        });
+        sfBars.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar,i)=>{bar.classList.add('fill-init');bar.style.width='0%';bar.style.transition=`width 0.65s ease ${i*0.045}s`;bar.offsetHeight;bar.style.width=bar.dataset.width+'%';});
+    }
+
+    /* ── Slide 15: catch-up bars ── */
+    const cuBars = slide.querySelector('#catchup-bars');
+    if (cuBars && !cuBars.dataset.init) {
+        cuBars.dataset.init = '1';
+        const catchup = [
+            {label:'Metaphor interpretation (MIPVU)',now:4.8,fut:7.4,delta:2.62},
+            {label:'Pragmatic inference coding',now:5.1,fut:7.5,delta:2.43},
+            {label:'Discourse coherence analysis',now:5.4,fut:7.7,delta:2.31},
+            {label:'Forensic stylometric authorship',now:5.4,fut:7.6,delta:2.18},
+            {label:'Cognitive metaphor patterns',now:5.2,fut:7.2,delta:2.05},
+            {label:'Critical discourse analysis',now:5.3,fut:7.2,delta:1.92},
+        ];
+        catchup.forEach(c => {
+            const nowPct = c.now/10*100, futPct = c.fut/10*100;
+            const row = document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:8px;';
+            row.innerHTML=`<div style="font-size:1.05rem;color:#ffffff;width:215px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${c.label}">${c.label}</div><div style="flex:1;height:22px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;position:relative;"><div class="bar-fill" data-width="${nowPct}" style="position:absolute;inset:0;width:0%;background:rgba(167,139,250,0.4);border-radius:4px;"></div><div class="bar-fill" data-width="${futPct}" style="position:absolute;inset:0;width:0%;background:linear-gradient(90deg,rgba(167,139,250,0.25),#38bdf8 70%);border-radius:4px;transition-delay:0.25s;"></div></div><div style="font-size:1.05rem;color:#ffffff;width:30px;text-align:right;flex-shrink:0;">${c.now}</div><span style="font-size:1.05rem;color:#38bdf8;font-weight:800;width:44px;text-align:center;flex-shrink:0;">+${c.delta}</span>`;
+            cuBars.appendChild(row);
+        });
+        cuBars.querySelectorAll('.bar-fill:not(.fill-init)').forEach((bar,i)=>{bar.classList.add('fill-init');bar.style.width='0%';bar.style.transition=`width 0.8s ease ${i*0.06}s`;bar.offsetHeight;bar.style.width=bar.dataset.width+'%';});
+        const leg=document.createElement('div');leg.style.cssText='display:flex;gap:1.2rem;margin-top:0.4rem;';
+        leg.innerHTML='<span style="font-size:1.05rem;color:#ffffff;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:8px;background:rgba(167,139,250,0.4);display:inline-block;border-radius:2px;"></span>Current score</span><span style="font-size:1.05rem;color:#ffffff;display:flex;align-items:center;gap:4px;"><span style="width:12px;height:8px;background:#38bdf8;display:inline-block;border-radius:2px;"></span>Projected 2035</span>';
+        cuBars.after(leg);
+    }
+}
+
+/* Mouse spotlight */
+document.addEventListener('mousemove', (e) => {
+    const spotlight = document.querySelector('.mouse-spotlight');
+    if (spotlight) { spotlight.style.background = `radial-gradient(600px circle at ${e.clientX}px ${e.clientY}px, rgba(167,139,250,0.06), transparent 40%)`; }
+});
+
+/* Parallax */
+(function() {
+    let mouseX = window.innerWidth/2, mouseY = window.innerHeight/2;
+    const cx = window.innerWidth/2, cy = window.innerHeight/2;
+    document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+    (function tick() {
+        const ox=(mouseX-cx)/cx, oy=(mouseY-cy)/cy;
+        document.querySelectorAll('.deco-shape').forEach(s => { const sp=parseFloat(s.dataset.speed)||0.03; s.style.transform=`translate(${ox*sp*100}px,${oy*sp*100}px)`; });
+        requestAnimationFrame(tick);
+    })();
+})();
+
+/* Particle canvas */
+window.initParticles = function(canvas, options) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+    const interactive = options.interactive !== false;
+    const count = options.count || (interactive ? 55 : 18);
+    let mx = -1000, my = -1000;
+    const [r,g,b] = [167,139,250];
+    const particles = Array.from({length:count}, () => ({
+        x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+        vx:(Math.random()-0.5)*0.3, vy:(Math.random()-0.5)*0.3,
+        size:Math.random()*2.5+0.8, alpha:Math.random()*0.35+0.1
+    }));
+    if (interactive) { canvas.addEventListener('mousemove',(e)=>{const rect=canvas.getBoundingClientRect();mx=e.clientX-rect.left;my=e.clientY-rect.top;}); canvas.addEventListener('mouseleave',()=>{mx=-1000;my=-1000;}); }
+    (function animate() {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        particles.forEach(p => {
+            if (interactive){const dx=p.x-mx,dy=p.y-my,dist=Math.sqrt(dx*dx+dy*dy);if(dist<120){const force=(120-dist)/120*2;p.vx+=(dx/dist)*force*0.1;p.vy+=(dy/dist)*force*0.1;}}
+            p.vx*=0.98;p.vy*=0.98;p.x+=p.vx;p.y+=p.vy;
+            if(p.x<0)p.x=canvas.width;if(p.x>canvas.width)p.x=0;if(p.y<0)p.y=canvas.height;if(p.y>canvas.height)p.y=0;
+            ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fillStyle=`rgba(${r},${g},${b},${p.alpha})`;ctx.fill();
+        });
+        requestAnimationFrame(animate);
+    })();
+};
+document.querySelectorAll('.particle-canvas').forEach(c => window.initParticles(c, {interactive:true,count:55}));
+document.querySelectorAll('.particle-canvas-ambient').forEach(c => window.initParticles(c, {interactive:false,count:18}));
+
+try { animateSlide(document.querySelector('.slide.active')); } catch(e) { console.warn('Init anim error:',e); }
+</script>
+</body>
+</html>
